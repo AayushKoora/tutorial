@@ -1,4 +1,5 @@
 import random
+from datetime import datetime
 
 import pygame
 
@@ -151,6 +152,11 @@ def draw_score(surface, font, score):
     surface.blit(text_surface, (SCREEN_WIDTH / 2 - text_surface.get_width() / 2, 40))
 
 
+def draw_best_score(surface, font, best_score):
+    text_surface = font.render(f"Best: {best_score}", True, TEXT_COLOR)
+    surface.blit(text_surface, (10, 10))
+
+
 def draw_game_over_overlay(surface, font):
     lines = ["Game Over", "Press SPACE to restart"]
     y = SCREEN_HEIGHT / 2 - 40
@@ -162,7 +168,7 @@ def draw_game_over_overlay(surface, font):
         y += text_surface.get_height() + 10
 
 
-def run_game() -> int:
+def run_game(player_name, best_score) -> list:
     pygame.init()
     try:
         screen = pygame.display.set_mode(
@@ -170,21 +176,24 @@ def run_game() -> int:
         )
     except pygame.error:
         screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-    pygame.display.set_caption("Flappy Bird")
+    pygame.display.set_caption(f"Flappy Bird - {player_name}")
     clock = pygame.time.Clock()
     font = pygame.font.SysFont(None, 48)
+    best_font = pygame.font.SysFont(None, 28)
 
     bird = Bird()
     pipes = []
     live_score = 0
-    session_best = 0
     state = PLAYING
+    session_rounds = []
 
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                if state == PLAYING:
+                    session_rounds.append((live_score, datetime.now()))
                 pygame.quit()
-                return session_best
+                return session_rounds
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                 if state == PLAYING:
                     bird.velocity = JUMP_VELOCITY
@@ -201,7 +210,7 @@ def run_game() -> int:
             live_score += update_scoring(bird, pipes)
 
             if check_collision(bird, pipes):
-                session_best = max(session_best, live_score)
+                session_rounds.append((live_score, datetime.now()))
                 state = GAME_OVER
 
         draw_sky(screen)
@@ -209,6 +218,7 @@ def run_game() -> int:
         draw_ground(screen)
         draw_bird(screen, bird)
         draw_score(screen, font, live_score)
+        draw_best_score(screen, best_font, best_score)
         if state == GAME_OVER:
             draw_game_over_overlay(screen, font)
 
